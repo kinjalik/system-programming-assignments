@@ -258,7 +258,9 @@ FILE *sort_file(const uint64_t latency, const char *const name, size_t *const ct
     printf("[RUN %d] Numbers in file: %lu\n", trace_id, numbers_in_file);
     printf("t\n");
     rewind(file);
-    FILE *output = split(trace_id, ctx_switch_count, file, 0, numbers_in_file);
+    FILE *output = numbers_in_file > MAX_NUMBERS_LOADED ?
+            split(trace_id, ctx_switch_count, file, 0, numbers_in_file) :
+            quick_sort_prepare(trace_id, ctx_switch_count, file, numbers_in_file);
     printf("[RUN %d] Result of sort: ", trace_id);
     print_numbers(output, numbers_in_file);
     fclose(file);
