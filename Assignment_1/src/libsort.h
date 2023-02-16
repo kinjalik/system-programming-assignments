@@ -2,13 +2,14 @@
 #define ASSIGNMENT_1_LIBSORT_H
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <assert.h>
+#include <stdint.h>
 #include "libcoro.h"
 
-FILE *sort_file(uint64_t target_latency, const char *const name);
+// Restriction: No more than 2 MB of numbers from one file may be loaded simultaneously
+// Assumption: int is 2^2=4 bytes (i.e. int32_t)
+#define MAX_NUMBERS_LOADED (2 << 10 << 10 >> 2)
+
+FILE *sort_file(const uint64_t latency, const char *const name, size_t *const ctx_switch_count);
 FILE *merge_sorted_files(FILE *a, FILE *b);
 
 #endif //ASSIGNMENT_1_LIBSORT_H

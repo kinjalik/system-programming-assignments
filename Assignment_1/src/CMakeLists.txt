@@ -1,4 +1,4 @@
-add_executable(output main.c libcoro.c libsort.c)
+add_executable(output main.c libcoro.c libsort.c libutil.c)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
