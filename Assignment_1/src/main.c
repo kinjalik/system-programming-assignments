@@ -3,6 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
+#include <unistd.h>
 #include "libcoro.h"
 #include "libsort.h"
 #include "libutil.h"
@@ -97,33 +98,65 @@ int main(int argc, char **argv)
     }
     /* All coroutines have finished. */
 
+    size_t file_cnt = argc - 3;
+    FILE **files = (FILE **) calloc(file_cnt, sizeof(FILE *));
+    size_t *file_lens = (size_t *) calloc(file_cnt, sizeof(size_t));
+    int *cur_value = (int *) calloc(file_cnt, sizeof(int));
+
+
     file_list *cur = g_sorted_files_head, *next;
-    FILE *tmp_output = tmpfile();
+    size_t k = 0;
     while (cur != NULL) {
         assert(cur->status == SORTING_FINISHED);
 
-        FILE *a = tmp_output;
-        FILE *b = cur->sorted_output;
-        rewind(a); rewind(b);
-        tmp_output = merge_sorted_files(a, b);
-        fclose(a);
-        fclose(b);
+        files[k] = cur->sorted_output;
+        rewind(files[k]);
+        file_lens[k] = count_numbers_in_file(files[k]);
+        rewind(files[k]);
 
         next = cur->next;
         free(cur);
         cur = next;
+        k++;
     }
 
-    rewind(tmp_output);
     FILE *output = fopen("output.txt", "w");
-    char a;
-    while( (a = fgetc(tmp_output)) != EOF )
-    {
-        fputc(a, output);
+
+    for (size_t i = 0; i < file_cnt; i++) {
+        printf("%lu\n", file_lens[i]);
     }
+
+    for (size_t i = 0; i < file_cnt; i++) {
+        fscanf(files[i], "%d", &cur_value[i]);
+    }
+
+    bool merged = false;
+    do {
+        int to_write = INT32_MAX;
+        size_t idx = file_cnt + 1;
+
+        for (size_t i = 0; i < file_cnt; i++) {
+            if (file_lens[i] == 0) {
+                continue;
+            }
+
+            if (idx == file_cnt + 1 || cur_value[i] < to_write) {
+                to_write = cur_value[i];
+                idx = i;
+            }
+        }
+
+        fprintf(output, "%d ", to_write);
+        fscanf(files[idx], "%d", &cur_value[idx]);
+        file_lens[idx]--;
+
+        merged = true;
+        for (size_t i = 0; merged && i < file_cnt; i++) {
+            merged = merged && file_lens[i] == 0;
+        }
+    } while(!merged);
 
     fflush(output);
-    fclose(tmp_output);
     fclose(output);
 
     uint64_t end_time = get_time_in_microsec();

@@ -11,5 +11,6 @@
 
 FILE *sort_file(const uint64_t latency, const char *const name, size_t *const ctx_switch_count);
 FILE *merge_sorted_files(FILE *a, FILE *b);
+size_t count_numbers_in_file(FILE * const file);
 
 #endif //ASSIGNMENT_1_LIBSORT_H
