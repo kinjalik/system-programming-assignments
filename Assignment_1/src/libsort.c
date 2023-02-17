@@ -279,9 +279,6 @@ FILE *sort_file(const uint64_t latency, const char *const name, size_t *const ct
     printf("[RUN %d] Result of sort: ", trace_id);
     print_numbers(output, numbers_in_file);
     rewind(output);
-    numbers_in_file = count_numbers_in_file(output);
-    rewind(output);
-    printf("[RUN %d] Numbers in sorted: %lu\n", trace_id, numbers_in_file);
     fclose(file);
     rewind(output);
     YIELD();

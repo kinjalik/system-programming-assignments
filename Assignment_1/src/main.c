@@ -123,10 +123,6 @@ int main(int argc, char **argv)
     FILE *output = fopen("output.txt", "w");
 
     for (size_t i = 0; i < file_cnt; i++) {
-        printf("%lu\n", file_lens[i]);
-    }
-
-    for (size_t i = 0; i < file_cnt; i++) {
         fscanf(files[i], "%d", &cur_value[i]);
     }
 
