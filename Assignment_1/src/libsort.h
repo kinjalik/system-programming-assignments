@@ -9,7 +9,8 @@
 // Assumption: int is 2^2=4 bytes (i.e. int32_t)
 #define MAX_NUMBERS_LOADED (2 << 10 << 10 >> 2)
 
-FILE *sort_file(const uint64_t latency, const char *const name, size_t *const ctx_switch_count);
+FILE *sort_file(const uint64_t latency, const char *const name, size_t *const ctx_switch_count,
+                uint64_t *const execTime);
 FILE *merge_sorted_files(FILE *a, FILE *b);
 size_t count_numbers_in_file(FILE * const file);
 

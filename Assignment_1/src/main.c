@@ -37,21 +37,22 @@ static int coroutine_func_f(void *context) {
     size_t switch_cnt = 0;
 
     file_list *cur = g_sorted_files_head;
+    uint64_t sumExecTime = 0;
     while (cur != NULL) {
         if (cur->status != SORTING_WAITING) {
             cur = cur->next;
             continue;
         }
 
+        uint64_t fileSortTime = 0;
         cur->status = SORTING_IN_PROGRESS;
-        cur->sorted_output = sort_file(g_target_latency, cur->filename, &switch_cnt);
+        cur->sorted_output = sort_file(g_target_latency, cur->filename, &switch_cnt, &fileSortTime);
         cur->status = SORTING_FINISHED;
+        sumExecTime += fileSortTime;
     }
 
-    uint64_t end_time = get_time_in_microsec();
-    assert(end_time >= start_time);
     printf("%s finished with %lu context switches. Execution time: ", coro_name, switch_cnt);
-    print_time_diff(start_time, end_time);
+    print_time_diff(0, sumExecTime);
     printf("\n");
 
     free(context);

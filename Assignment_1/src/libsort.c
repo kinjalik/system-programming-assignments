@@ -51,16 +51,20 @@ static void print_numbers(FILE * const file, const size_t len)
 // But it is edu purposes code, so I would like omit it to save time (I wrote it in 3:40 PM :D)
 #define MAX_SORTING_PROCESSES 10000
 static uint64_t last_yield_time[MAX_SORTING_PROCESSES] = {0};
+static uint64_t sum_exec_time[MAX_SORTING_PROCESSES] = {0};
 static uint64_t target_latency = 0;
 
 /* Achtung: this macro uses trace_id and ctx_switch_count from outer scope! */
 
 #define YIELD()                                                                \
 do {                                                                           \
-    if (get_time_in_microsec() - last_yield_time[trace_id] > target_latency) { \
-        *ctx_switch_count = *ctx_switch_count + 1;                               \
+    uint64_t exec_time = get_time_in_microsec() - last_yield_time[trace_id];   \
+    if (exec_time > target_latency) {                                          \
+        *ctx_switch_count = *ctx_switch_count + 1;                             \
+        sum_exec_time[trace_id] += exec_time;                                  \
         coro_yield();                                                          \
         last_yield_time[trace_id] = get_time_in_microsec();                    \
+                                                                               \
     }                                                                          \
 } while(0);
 
@@ -258,30 +262,32 @@ size_t count_numbers_in_file(FILE * const file)
 }
 
 static int trace_id = 0;
-FILE *sort_file(const uint64_t latency, const char *const name, size_t *const ctx_switch_count)
+FILE *sort_file(const uint64_t latency, const char *const name, size_t *const ctx_switch_count,
+                uint64_t *const execTime)
 {
     trace_id++;
-    last_yield_time[trace_id] = get_time_in_microsec();
+    int cur_trace_id = trace_id;
+    last_yield_time[cur_trace_id] = get_time_in_microsec();
     target_latency = latency;
 
     FILE *file = fopen(name, "r");
     if (file == NULL) {
-        printf("[RUN %d] Failed to open the file, errno=%u, error is: %s", trace_id, errno, strerror(errno));
+        printf("[RUN %d] Failed to open the file, errno=%u, error is: %s", cur_trace_id, errno, strerror(errno));
         return NULL;
     }
 
     size_t numbers_in_file = count_numbers_in_file(file);
-    printf("[RUN %d] Numbers in file: %lu\n", trace_id, numbers_in_file);
+    printf("[RUN %d] Numbers in file: %lu\n", cur_trace_id, numbers_in_file);
     rewind(file);
     FILE *output = numbers_in_file > MAX_NUMBERS_LOADED ?
-            split(trace_id, ctx_switch_count, file, 0, numbers_in_file) :
-                   quick_sort_prepare(trace_id, ctx_switch_count, file, numbers_in_file);
-    printf("[RUN %d] Result of sort: ", trace_id);
+            split(cur_trace_id, ctx_switch_count, file, 0, numbers_in_file) :
+                  quick_sort_prepare(trace_id, ctx_switch_count, file, numbers_in_file);
+    printf("[RUN %d] Result of sort: ", cur_trace_id);
     print_numbers(output, numbers_in_file);
-    rewind(output);
     fclose(file);
     rewind(output);
     YIELD();
+    *execTime = sum_exec_time[cur_trace_id];
     return output;
 }
 
