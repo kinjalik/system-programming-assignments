@@ -13,6 +13,7 @@ typedef enum {
     COMMAND_TYPE_OPERATOR_APPEND,
     COMMAND_TYPE_OPERATOR_WRITE,
     COMMAND_TYPE_BACKGROUND,
+    COMMAND_TYPE_COMMENT,
     COMMAND_TYPE_UNKNOWN,
 
     COMMAND_TYPE_MAX
@@ -28,15 +29,17 @@ typedef struct {
 } Command;
 
 typedef struct {
-    size_t tokenCount;
     Command *tokens;
+    size_t size;
+    size_t capacity;
 } CommandArray;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-CommandArray parser(const char *input, size_t length);
+CommandArray parser(char **input);
+void parser_free(CommandArray *const ptr);
 
 #ifdef __cplusplus
 }

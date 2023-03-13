@@ -1,11 +1,8 @@
-# Solution for Assignment 1
+# Solution for Assignment 2
 
 Usage:
 ```bash
-./output coroutine_pool_size target_latency [file_name...]
+./output 
 ```
 
-Example:
-```bash
-./output 4 100000 test1.txt test2.txt
-```
+echo 'source string' | sed 's/source/destination/g' | sed 's/string/value/g'

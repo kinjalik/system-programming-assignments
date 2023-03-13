@@ -10,6 +10,7 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 add_executable(tests
         components/parser_сt.cpp
+        components/executor_ct.cpp
         units/parser_ut.cpp)
 target_link_libraries(tests GTest::gtest_main)
 
@@ -18,9 +19,12 @@ set(CMAKE_CXX_STANDARD 14)
 include(GoogleTest)
 gtest_discover_tests(tests)
 
-# Link the parser
+# Link the libs
 target_link_libraries(tests parser)
+target_link_libraries(tests executor)
 include_directories(${parser_SOURCE_DIR})
+include_directories(${executor_SOURCE_DIR})
+
 
 include(CMakePrintHelpers)
 cmake_print_variables(CMAKE_BUILD_TYPE)
