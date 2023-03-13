@@ -68,9 +68,7 @@ static void arrayFree(HandlerArray *h) {
 
 static int executeRegular(Command *token, HandlerArray *hndlrs) {
     char resolvedName[RESOLVED_NAME_MAX_LEN] = {0};
-    if (!resolvePath(token->name, resolvedName)) {
-        return EXIT_FAILURE;
-    }
+    bool resolved = resolvePath(token->name, resolvedName);
 
     if (hndlrs->size == hndlrs->capacity) {
         extendArray(hndlrs);
@@ -93,8 +91,11 @@ static int executeRegular(Command *token, HandlerArray *hndlrs) {
         dup2(h->outputPipe[1], 1);
         dup2(h->outputPipe[1], 2);
         close(h->outputPipe[1]);
-//        execvp(token->name, &token->argv[1]);
-        execv(resolvedName, token->argv);
+        if (resolved) {
+            execv(resolvedName, token->argv);
+        } else {
+            printf("Command not found");
+        }
         exit(0);
     } else {
         close(h->outputPipe[1]);
@@ -174,12 +175,13 @@ size_t execute(CommandArray array) {
             break;
         }
         if (token->type == COMMAND_TYPE_REGULAR) {
-            uint32_t ret = executeRegular(token, &hndlrs);
             uint32_t builtInError = executeBuiltin(token);
-            if (ret != EXIT_SUCCESS)
-                builtInError = executeBuiltin(token);
-            if (ret != EXIT_SUCCESS && builtInError != EXIT_SUCCESS) {
-                printf("Command not found\n");
+            if (builtInError != EXIT_FAILURE) {
+                continue;
+            }
+            uint32_t ret = executeRegular(token, &hndlrs);
+            if (ret != EXIT_SUCCESS) {
+                printf("failed to execute\n");
                 break;
             }
             regularsExecuted++;
