@@ -111,7 +111,7 @@ static bool
 ufs_check_valid_fd_idx(int idx);
 
 static void
-ufs_move_overflowing_fds(const struct file * const file);
+ufs_move_overflowing_fds(const struct file * file);
 
 /** PUBLIC INTERFACE START */
 
@@ -319,13 +319,15 @@ ufs_resize(int fdN, size_t new_size)
         return RETVAL_SUCCESS;
     }
 
-    bool ret = new_size > file->total_size ? ufs_extend_file(file, new_size) : ufs_reduce_file(file, new_size);
+    bool ret = true;
+    if (new_size > file->total_size) {
+        ret = ufs_extend_file(file, new_size);
+    } else {
+        ret = ufs_reduce_file(file, new_size);
+        ufs_move_overflowing_fds(file);
+    }
     if (!ret) {
         return RETVAL_FAILURE;
-    }
-
-    if (new_size < file->total_size) {
-        ufs_move_overflowing_fds(file);
     }
 
     return RETVAL_SUCCESS;
@@ -602,8 +604,8 @@ ufs_check_valid_fd_idx(int idx)
 static void
 ufs_move_overflowing_fds(const struct file * const file)
 {
-    size_t descriptors_found = 1;
-    for (size_t i = 1; i < file_descriptor_capacity; i++) {
+    size_t descriptors_found = 0;
+    for (size_t i = 0; i < file_descriptor_capacity; i++) {
         if (file_descriptors[i] == NULL|| file_descriptors[i]->file != file) {
             continue;
         }

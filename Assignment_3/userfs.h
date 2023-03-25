@@ -23,7 +23,7 @@
  */
 
 #define NEED_OPEN_FLAGS
-//#define NEED_RESIZE
+#define NEED_RESIZE
 
 /**
  * Flags for ufs_open call.
