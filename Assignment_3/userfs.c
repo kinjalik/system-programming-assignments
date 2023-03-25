@@ -589,6 +589,7 @@ ufs_delete_fd(int idx)
     }
 
     free(fd);
+    file_descriptor_count--;
 }
 
 static bool
