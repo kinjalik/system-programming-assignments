@@ -160,3 +160,5 @@ int
 ufs_resize(int fd, size_t new_size);
 
 #endif
+
+void ufs_shutdown();

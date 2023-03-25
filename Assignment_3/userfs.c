@@ -622,3 +622,13 @@ ufs_move_overflowing_fds(const struct file * const file)
 
     assert(descriptors_found == file->refs);
 }
+
+void ufs_shutdown() {
+    for (int i = 0; i < file_descriptor_capacity; i++) {
+        if (file_descriptors[i] != NULL) {
+            printf("Test didn't clean descriptor!");
+            ufs_delete_fd(i);
+        }
+    }
+    free(file_descriptors);
+}

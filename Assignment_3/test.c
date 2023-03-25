@@ -1,5 +1,6 @@
 #include "userfs.h"
 #include "unit.h"
+#include "heap_help/heap_help.h"
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
@@ -402,6 +403,7 @@ int
 main(void)
 {
     unit_test_start();
+    int leaks_on_start = heaph_get_alloc_count();
 
     test_open();
     test_close();
@@ -413,5 +415,7 @@ main(void)
     test_resize();
 
     unit_test_finish();
+    ufs_shutdown();
+    printf("Leaks on start: %d\n", leaks_on_start);
     return 0;
 }
