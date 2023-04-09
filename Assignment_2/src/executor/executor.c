@@ -2,15 +2,11 @@
 // Created by kinjalik on 3/10/23.
 //
 #include <stdio.h>
-#include <malloc.h>
-#include <assert.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <wait.h>
-#include <fcntl.h>
-#include <asm-generic/errno-base.h>
 #include "executor.h"
 
 #define PATH "PATH"
