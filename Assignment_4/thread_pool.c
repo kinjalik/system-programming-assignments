@@ -4,10 +4,12 @@
 #include <errno.h>
 #include <stdio.h>
 #include <tgmath.h>
+#include <assert.h>
 
 struct thread_pool {
 	int max_thread_count;
-	int task_count;
+	int task_in_pool;
+    int task_executing;
 	pthread_t *threads;
     int created_threads_count;
 	pthread_mutex_t mutex;
@@ -33,7 +35,7 @@ static void *thread_worker(void *arg) {
 	struct thread_pool *pool = (struct thread_pool *)arg;
 	while (true) {
 		pthread_mutex_lock(&pool->mutex);
-		while (pool->task_count == 0 && !pool->shutdown) {
+		while (pool->task_in_pool - pool->task_executing == 0 && !pool->shutdown) {
 			pthread_cond_wait(&pool->cond, &pool->mutex);
 		}
 		if (pool->shutdown) {
@@ -41,16 +43,19 @@ static void *thread_worker(void *arg) {
 			break;
 		}
 		struct thread_task *task = pool->head;
+        assert(task != NULL);
 		pool->head = task->next;
 		if (pool->head == NULL) {
 			pool->tail = NULL;
 		}
+        pool->task_executing++;
 		pthread_mutex_unlock(&pool->mutex);
 
 		task->result = task->function(task->arg);
 
         pthread_mutex_lock(&pool->mutex);
-        pool->task_count--;
+        pool->task_in_pool--;
+        pool->task_executing--;
         pthread_mutex_unlock(&pool->mutex);
 
         pthread_mutex_lock(&task->mutex);
@@ -77,7 +82,8 @@ int thread_pool_new(int max_thread_count, struct thread_pool **pool) {
 		return TPOOL_ERR_ALLOCATION_ERROR;
 	}
 	p->max_thread_count = max_thread_count;
-	p->task_count = 0;
+	p->task_in_pool = 0;
+    p->task_executing = 0;
 	p->threads = calloc(max_thread_count, sizeof(pthread_t));
 	if (p->threads == NULL) {
 		free(p);
@@ -114,7 +120,7 @@ int thread_pool_delete(struct thread_pool *pool) {
 	}
 	pthread_mutex_lock(&pool->mutex);
 
-    if (pool->task_count > 0) {
+    if (pool->task_in_pool > 0) {
         pthread_mutex_unlock(&pool->mutex);
         return TPOOL_ERR_HAS_TASKS;
     }
@@ -141,7 +147,7 @@ int thread_pool_push_task(struct thread_pool *pool, struct thread_task *task) {
 	}
 
     pthread_mutex_lock(&pool->mutex);
-	if (pool->task_count >= TPOOL_MAX_TASKS) {
+	if (pool->task_in_pool >= TPOOL_MAX_TASKS) {
         pthread_mutex_unlock(&pool->mutex);
 		return TPOOL_ERR_TOO_MANY_TASKS;
 	}
@@ -156,12 +162,12 @@ int thread_pool_push_task(struct thread_pool *pool, struct thread_task *task) {
 		pool->tail->next = task;
 		pool->tail = task;
 	}
-	pool->task_count++;
+	pool->task_in_pool++;
     task->associated_pool = pool;
     task->detachMode = false;
     task->done = false;
 
-    if (pool->task_count > pool->created_threads_count && pool->created_threads_count < pool->max_thread_count) {
+    if (pool->task_in_pool > pool->created_threads_count && pool->created_threads_count < pool->max_thread_count) {
         int ret = pthread_create(&pool->threads[pool->created_threads_count], NULL, thread_worker, pool);
         if (ret != 0) {
             return TPOOL_ERR_PTHREAD_ERROR;
@@ -206,8 +212,8 @@ int thread_task_join(struct thread_task *task, double timeout, void **result) {
 		return TPOOL_ERR_TASK_NOT_PUSHED;
 	}
 	while (!task->done) {
-        if (fabs(timeout) < 10e-7) {
-//        if (timeout < 10e-7) {
+//        if (fabs(timeout) < 10e-7) {
+        if (timeout < 10e-7) {
             pthread_cond_wait(&task->cond, &task->mutex);
         } else {
             timeout += 10e-7;
