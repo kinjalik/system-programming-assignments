@@ -225,6 +225,7 @@ int thread_task_join(struct thread_task *task, double timeout, void **result) {
             };
             pthread_cond_timedwait(&task->cond, &task->mutex, &ts_timeout);
             if (!task->done) {
+                pthread_mutex_unlock(&task->mutex);
                 return TPOOL_ERR_TIMEOUT;
             }
         }
