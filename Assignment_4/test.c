@@ -186,6 +186,7 @@ test_thread_pool_max_tasks(void)
             continue;
         }
         unit_check(rc == TPOOL_ERR_TOO_MANY_TASKS, "too many tasks");
+        thread_task_delete(*t);
         break;
     }
     unit_check(overuse < more_count, "reached max tasks");
