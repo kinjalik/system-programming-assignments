@@ -201,7 +201,7 @@ int thread_task_new(struct thread_task **task, thread_task_f function, void *arg
 
 }
 
-int thread_task_join(struct thread_task *task, double timeout, void **result) {
+int thread_task_timed_join(struct thread_task *task, double timeout, void **result) {
 	if (task == NULL) {
 		return TPOOL_ERR_INVALID_ARGUMENT;
 	}
@@ -238,6 +238,10 @@ int thread_task_join(struct thread_task *task, double timeout, void **result) {
 	}
 
 	return TPOOL_OK;
+}
+
+int thread_task_join(struct thread_task *task, void **result) {
+    return thread_task_timed_join(task, 0, result);
 }
 
 int thread_task_delete(struct thread_task *task) {

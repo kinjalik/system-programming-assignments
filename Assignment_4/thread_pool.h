@@ -5,6 +5,7 @@
 #define THREAD_POOL_DEFINED
 
 #define NEED_DETACH
+#define NEED_TIMED_JOIN
 
 struct thread_pool;
 struct thread_task;
@@ -116,7 +117,7 @@ thread_task_is_running(const struct thread_task *task);
  *     - TPOOL_ERR_TASK_NOT_PUSHED - task is not pushed to a pool.
  */
 int
-thread_task_join(struct thread_task *task, double timeout, void **result);
+thread_task_join(struct thread_task *task, void **result);
 
 /**
  * Delete a task, free its memory.
@@ -144,6 +145,25 @@ thread_task_delete(struct thread_task *task);
 */
 int
 thread_task_detach(struct thread_task *task);
+
+#endif
+
+#ifdef NEED_TIMED_JOIN
+
+/**
+ * Like thread_task_join() but wait no longer than the timeout.
+ * @param task Task to join.
+ * @param timeout Timeout in seconds. 0 means no waiting at all. For an infinite
+ *   timeout pass infinity or DBL_MAX or just something huge.
+ * @param[out] result Pointer to stored result of @a task.
+ *
+ * @retval 0 Success.
+ * @retval != 0 Error code.
+ *     - TPOOL_ERR_TASK_NOT_PUSHED - task is not pushed to a pool.
+ *     - TPOOL_ERR_TIMEOUT - join timed out, nothing is done.
+ */
+int
+thread_task_timed_join(struct thread_task *task, double timeout, void **result);
 
 #endif
 
