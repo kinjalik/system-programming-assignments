@@ -212,22 +212,17 @@ int thread_task_timed_join(struct thread_task *task, double timeout, void **resu
 		return TPOOL_ERR_TASK_NOT_PUSHED;
 	}
 	while (!task->done) {
-//        if (fabs(timeout) < 10e-7) {
-        if (timeout < 10e-7) {
-            pthread_cond_wait(&task->cond, &task->mutex);
-        } else {
-            timeout += 10e-7;
-            long int seconds = (long int) timeout;
-            long int n_seconds = (long int) ((timeout - seconds) * 1e9);
-            struct timespec ts_timeout = {
-                    .tv_sec = seconds,
-                    .tv_nsec = n_seconds
-            };
-            pthread_cond_timedwait(&task->cond, &task->mutex, &ts_timeout);
-            if (!task->done) {
-                pthread_mutex_unlock(&task->mutex);
-                return TPOOL_ERR_TIMEOUT;
-            }
+        timeout += 10e-7;
+        long int diff_seconds = (long int) timeout;
+        long int diff_n_seconds = (long int) ((timeout - diff_seconds) * 1e9);
+        struct timespec ts_abstime;
+        clock_gettime(CLOCK_MONOTONIC, &ts_abstime);
+        ts_abstime.tv_sec += diff_seconds;
+        ts_abstime.tv_nsec += diff_n_seconds;
+        int ret = pthread_cond_timedwait(&task->cond, &task->mutex, &ts_abstime);
+        if (ret == ETIMEDOUT) {
+            pthread_mutex_unlock(&task->mutex);
+            return TPOOL_ERR_TIMEOUT;
         }
 	}
     task->associated_pool = NULL;
