@@ -211,32 +211,64 @@ int thread_task_timed_join(struct thread_task *task, double timeout, void **resu
         pthread_mutex_unlock(&task->mutex);
 		return TPOOL_ERR_TASK_NOT_PUSHED;
 	}
-	while (!task->done) {
-        timeout += 10e-7;
-        long int diff_seconds = (long int) timeout;
-        long int diff_n_seconds = (long int) ((timeout - diff_seconds) * 1e9);
-        struct timespec ts_abstime;
-        clock_gettime(CLOCK_MONOTONIC, &ts_abstime);
-        ts_abstime.tv_sec += diff_seconds;
-        ts_abstime.tv_nsec += diff_n_seconds;
-        int ret = pthread_cond_timedwait(&task->cond, &task->mutex, &ts_abstime);
-        if (ret == ETIMEDOUT) {
-            pthread_mutex_unlock(&task->mutex);
-            return TPOOL_ERR_TIMEOUT;
+
+    timeout += 10e-7;
+    long int diff_seconds = (long int) timeout;
+    long int diff_n_seconds = (long int) ((timeout - diff_seconds) * 1000000000);
+    struct timespec deadline;
+    clock_gettime(CLOCK_MONOTONIC, &deadline);
+    deadline.tv_sec += diff_seconds;
+    deadline.tv_nsec += diff_n_seconds;
+
+    bool finished = false;
+    do {
+        pthread_cond_timedwait(&task->cond, &task->mutex, &deadline);
+
+        if (task->done) {
+            break;
         }
-	}
+
+        struct timespec cur_time;
+        clock_gettime(CLOCK_MONOTONIC, &cur_time);
+
+        finished = cur_time.tv_sec > deadline.tv_sec ||
+        (cur_time.tv_sec == deadline.tv_sec && cur_time.tv_nsec > deadline.tv_nsec);
+    } while (!finished);
+
+    if (!task->done) {
+        pthread_mutex_unlock(&task->mutex);
+        return TPOOL_ERR_TIMEOUT;
+    }
+
     task->associated_pool = NULL;
     pthread_mutex_unlock(&task->mutex);
-
 	if (result != NULL) {
 		*result = task->result;
 	}
 
 	return TPOOL_OK;
 }
-
 int thread_task_join(struct thread_task *task, void **result) {
-    return thread_task_timed_join(task, 0, result);
+    if (task == NULL) {
+        return TPOOL_ERR_INVALID_ARGUMENT;
+    }
+
+    pthread_mutex_lock(&task->mutex);
+    if (task->associated_pool == NULL) {
+        pthread_mutex_unlock(&task->mutex);
+        return TPOOL_ERR_TASK_NOT_PUSHED;
+    }
+    while (!task->done) {
+        pthread_cond_wait(&task->cond, &task->mutex);
+    }
+    task->associated_pool = NULL;
+    pthread_mutex_unlock(&task->mutex);
+
+    if (result != NULL) {
+        *result = task->result;
+    }
+
+    return TPOOL_OK;
 }
 
 int thread_task_delete(struct thread_task *task) {
