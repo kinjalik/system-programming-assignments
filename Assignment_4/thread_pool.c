@@ -77,7 +77,7 @@ int thread_pool_new(int max_thread_count, struct thread_pool **pool) {
 	if (max_thread_count <= 0 || max_thread_count > TPOOL_MAX_THREADS || pool == NULL) {
 		return TPOOL_ERR_INVALID_ARGUMENT;
 	}
-	struct thread_pool *p = malloc(sizeof(struct thread_pool));
+	struct thread_pool *p = calloc(1, sizeof(struct thread_pool));
 	if (p == NULL) {
 		return TPOOL_ERR_ALLOCATION_ERROR;
 	}
