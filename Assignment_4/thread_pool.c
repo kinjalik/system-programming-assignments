@@ -84,9 +84,9 @@ static void *thread_worker(void *arg) {
         task->state = TASK_DONE;
 
         pthread_cond_broadcast(&task->cond);
-        pthread_mutex_unlock(&task->mutex);
 
         bool to_delete = task->detachMode;
+        pthread_mutex_unlock(&task->mutex);
         if (to_delete) {
             pthread_mutex_destroy(&task->mutex);
             pthread_cond_destroy(&task->cond);
@@ -244,6 +244,10 @@ int thread_task_timed_join(struct thread_task *task, double timeout, void **resu
     struct timespec deadline;
     deadline.tv_sec = now.tv_sec + (uint64_t) timeout;
     deadline.tv_nsec = now.tv_usec * 1000 + (timeout - (double) (uint64_t) timeout) * 1000000000;
+    if (deadline.tv_nsec > 1000000000) {
+        deadline.tv_sec++;
+        deadline.tv_nsec -= 1000000000;
+    }
     bool finished = false;
     do {
         int ret = pthread_cond_timedwait(&task->cond, &task->mutex, &deadline);
